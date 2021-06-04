@@ -179,6 +179,7 @@ func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error)
 
 	v := url.Values{}
 	v.Add("Listening-Configs", content)
+	v.Add("tenant", namespace)
 	if n.accessToken != "" {
 		v.Add("accessToken", n.accessToken)
 	}
@@ -189,6 +190,7 @@ func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error)
 	}
 
 	req.Header.Add("Long-Pulling-Timeout", "3000")
+	req.Header.Add("User-Agent", "Nacos-go-client/v1.0.1")
 	req.Header.Add("exConfigInfo", "true")
 	req.Header.Add("Content-Type", contentType)
 
