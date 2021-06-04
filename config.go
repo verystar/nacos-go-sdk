@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	contentType        = "application/x-www-form-urlencoded;charset=utf-8"
-	SPLIT_CONFIG       = string(rune(1))
-	SPLIT_CONFIG_INNER = string(rune(2))
+	contentType      = "application/x-www-form-urlencoded;charset=utf-8"
+	splitConfig      = string(rune(1))
+	splitConfigInner = string(rune(2))
 )
 
 type NacosConfig struct {
@@ -175,8 +175,7 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error) {
 	n.Logger.Debug(fmt.Sprintf("nacos listen start:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
 
-	content := dataId + SPLIT_CONFIG_INNER + group + SPLIT_CONFIG_INNER +
-		md5 + SPLIT_CONFIG_INNER + namespace + SPLIT_CONFIG
+	content := dataId + splitConfigInner + group + splitConfigInner + md5 + splitConfigInner + namespace + splitConfig
 
 	v := url.Values{}
 	v.Add("Listening-Configs", content)
