@@ -18,8 +18,8 @@ const contentType = "application/x-www-form-urlencoded;charset=utf-8"
 type NacosConfig struct {
 	HttpClient  *http.Client
 	ServerAddr  string
-	AccessToken string
-	TokenTTL    int
+	accessToken string
+	tokenTTL    int
 	Username    string
 	Password    string
 	Logger      logger
@@ -86,8 +86,8 @@ func (n *NacosConfig) login() error {
 	if err := json.Unmarshal(bb, loginResp); err != nil {
 		return err
 	}
-	n.AccessToken = loginResp.AccessToken
-	n.TokenTTL = loginResp.TokenTTL - 600
+	n.accessToken = loginResp.AccessToken
+	n.tokenTTL = loginResp.TokenTTL - 600
 
 	return nil
 }
@@ -99,8 +99,8 @@ func (n *NacosConfig) Get(namespace, group, dataId string) (string, error) {
 	v.Add("tenant", namespace)
 	v.Add("group", group)
 	v.Add("dataId", dataId)
-	if n.AccessToken != "" {
-		v.Add("accessToken", n.AccessToken)
+	if n.accessToken != "" {
+		v.Add("accessToken", n.accessToken)
 	}
 
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/nacos/v1/cs/configs?", n.ServerAddr)+v.Encode(), nil)
@@ -137,7 +137,7 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 	contentMd5 := md5string(ret)
 
 	go func() {
-		t1 := time.NewTicker(time.Duration(n.TokenTTL) * time.Second)
+		t1 := time.NewTicker(time.Duration(n.tokenTTL) * time.Second)
 		t2 := time.NewTicker(n.PollTime)
 		for {
 			select {
@@ -185,8 +185,8 @@ func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error)
 
 	v := url.Values{}
 	v.Add("Listening-Configs", content.String())
-	if n.AccessToken != "" {
-		v.Add("accessToken", n.AccessToken)
+	if n.accessToken != "" {
+		v.Add("accessToken", n.accessToken)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/nacos/v1/cs/configs/listener", n.ServerAddr), strings.NewReader(v.Encode()))
