@@ -1,7 +1,6 @@
 package nacos
 
 import (
-	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -13,7 +12,11 @@ import (
 	"time"
 )
 
-const contentType = "application/x-www-form-urlencoded;charset=utf-8"
+const (
+	contentType        = "application/x-www-form-urlencoded;charset=utf-8"
+	SPLIT_CONFIG       = string(rune(1))
+	SPLIT_CONFIG_INNER = string(rune(2))
+)
 
 type NacosConfig struct {
 	HttpClient  *http.Client
@@ -171,20 +174,12 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 
 func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error) {
 	n.Logger.Debug(fmt.Sprintf("nacos listen start:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
-	content := bytes.Buffer{}
-	content.WriteString(dataId)
-	content.WriteString("%02")
-	content.WriteString(group)
-	content.WriteString("%02")
-	if md5 != "" {
-		content.WriteString(md5)
-		content.WriteString("%02")
-	}
-	content.WriteString(namespace)
-	content.WriteString("%01")
+
+	content := dataId + SPLIT_CONFIG_INNER + group + SPLIT_CONFIG_INNER +
+		md5 + SPLIT_CONFIG_INNER + namespace + SPLIT_CONFIG
 
 	v := url.Values{}
-	v.Add("Listening-Configs", content.String())
+	v.Add("Listening-Configs", content)
 	if n.accessToken != "" {
 		v.Add("accessToken", n.accessToken)
 	}
