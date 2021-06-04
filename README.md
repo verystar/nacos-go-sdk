@@ -5,6 +5,7 @@ conf := nacos.NewNacosConfig(func(c *NacosConfig) {
     c.ServerAddr = "http://127.0.0.1:8848"
     c.Username = "nacos"
     c.Password = "nacos"
+    c.PollTime = 20*time.Second // 设置监听轮询周期，默认10秒
 })
 
 // 异步监听配置

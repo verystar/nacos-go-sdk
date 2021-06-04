@@ -24,6 +24,7 @@ type NacosConfig struct {
 	Username    string
 	Password    string
 	Logger      logger
+	PollTime    time.Duration
 }
 
 type LoginResponse struct {
@@ -36,6 +37,7 @@ func NewNacosConfig(options ...func(c *NacosConfig)) *NacosConfig {
 	nc := &NacosConfig{
 		HttpClient: http.DefaultClient,
 		Logger:     &defualtLogger{},
+		PollTime:   10 * time.Second,
 	}
 
 	for _, option := range options {
@@ -132,16 +134,17 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 	contentMd5 := md5string(ret)
 
 	go func() {
+		t1 := time.NewTicker(time.Duration(n.TokenTTL) * time.Second)
+		t2 := time.NewTicker(n.PollTime)
 		for {
 			select {
 			// token到期刷新
-			case <-time.After(time.Duration(n.TokenTTL) * time.Second):
+			case <-t1.C:
 				if err := n.login(); err != nil {
 					n.Logger.Error(err)
 				}
 			// 每10秒监听配置
-			case <-time.After(10 * time.Second):
-				n.Logger.Debug(fmt.Sprintf("nacos listen start:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
+			case <-t2.C:
 				update, err := n.Listen(namespace, group, dataId, contentMd5)
 				if err != nil {
 					n.Logger.Error(err)
@@ -164,6 +167,7 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 }
 
 func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error) {
+	n.Logger.Debug(fmt.Sprintf("nacos listen start:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
 	content := bytes.Buffer{}
 	content.WriteString(dataId)
 	content.WriteString("%02")
