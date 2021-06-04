@@ -78,6 +78,10 @@ func (n *NacosConfig) login() error {
 		return err
 	}
 
+	if resp.StatusCode != 200 {
+		return errors.New(string(bb))
+	}
+
 	loginResp := &LoginResponse{}
 
 	if err := json.Unmarshal(bb, loginResp); err != nil {
