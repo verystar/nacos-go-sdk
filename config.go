@@ -124,8 +124,12 @@ func (n *NacosConfig) Get(namespace, group, dataId string) (string, error) {
 }
 
 func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf string)) {
+	ret, err := n.Get(namespace, group, dataId)
+	if err != nil {
+		panic(err)
+	}
 
-	contentMd5 := ""
+	contentMd5 := md5string(ret)
 
 	go func() {
 		for {
