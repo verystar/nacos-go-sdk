@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -79,7 +78,7 @@ func (n *NacosConfig) login() error {
 	}
 
 	if resp.StatusCode != 200 {
-		return errors.New(string(bb))
+		return fmt.Errorf("nacos login fail:%s", string(bb))
 	}
 
 	loginResp := &LoginResponse{}
@@ -123,7 +122,7 @@ func (n *NacosConfig) Get(namespace, group, dataId string) (string, error) {
 	}
 
 	if resp.StatusCode != 200 {
-		return "", errors.New(string(bb))
+		return "", fmt.Errorf("nacos get fail:%s", string(bb))
 	}
 
 	return string(bb), nil
