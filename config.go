@@ -209,10 +209,15 @@ func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error)
 	if err != nil {
 		return false, err
 	}
+
+	if resp.StatusCode != 200 {
+		return false, fmt.Errorf("nacos listen response error:%s", string(bb))
+	}
+
 	str := strings.Split(string(bb), "%02")
 
 	// 如果返回数据不为空则代表有变化的文件
-	if resp.StatusCode == 200 && len(str) > 0 && str[0] == dataId {
+	if len(str) > 0 && str[0] == dataId {
 		return true, nil
 	}
 
