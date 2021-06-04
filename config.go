@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -115,6 +116,10 @@ func (n *NacosConfig) Get(namespace, group, dataId string) (string, error) {
 		return "", err
 	}
 
+	if resp.StatusCode != 200 {
+		return "", errors.New(string(bb))
+	}
+
 	return string(bb), nil
 }
 
@@ -136,13 +141,14 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 				update, err := n.Listen(namespace, group, dataId, contentMd5)
 				if err != nil {
 					n.Logger.Error(err)
-					return
+					continue
 				}
 				if update {
+					n.Logger.Debug(fmt.Sprintf("nacos listen refresh:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
 					ret, err := n.Get(namespace, group, dataId)
 					if err != nil {
 						n.Logger.Error(err)
-						return
+						continue
 					}
 
 					contentMd5 = md5string(ret)
@@ -192,8 +198,10 @@ func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error)
 	if err != nil {
 		return false, err
 	}
+	str := strings.Split(string(bb), "%02")
+
 	// 如果返回数据不为空则代表有变化的文件
-	if string(bb) != "" {
+	if resp.StatusCode == 200 && len(str) > 0 && str[0] == dataId {
 		return true, nil
 	}
 
