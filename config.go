@@ -95,6 +95,47 @@ func (n *NacosConfig) login() error {
 	return nil
 }
 
+func (n *NacosConfig) Put(namespace, group, dataId string, content string) error {
+	n.Logger.Debug(fmt.Sprintf("nacos get config:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
+
+	v := url.Values{}
+	v.Add("tenant", namespace)
+	v.Add("group", group)
+	v.Add("dataId", dataId)
+	v.Add("content", content)
+	if n.accessToken != "" {
+		v.Add("accessToken", n.accessToken)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/nacos/v1/cs/configs?", n.ServerAddr)+v.Encode(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", contentType)
+
+	resp, err := n.HttpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	bb, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("nacos put fail:%s", string(bb))
+	}
+
+	if string(bb) != "true" {
+		return fmt.Errorf("nacos put fail:%s", string(bb))
+	}
+
+	return nil
+}
+
 func (n *NacosConfig) Get(namespace, group, dataId string) (string, error) {
 	n.Logger.Debug(fmt.Sprintf("nacos get config:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
 

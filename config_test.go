@@ -18,3 +18,16 @@ func TestNacosConfig_ListenAsync(t *testing.T) {
 
 	<-time.After(60 * time.Second)
 }
+
+func TestNacosConfig_Put(t *testing.T) {
+	conf := NewNacosConfig(func(c *NacosConfig) {
+		c.ServerAddr = "http://127.0.0.1:8848"
+		c.Username = "test2"
+		c.Password = "test2"
+	})
+
+	err := conf.Put("pay-dev", "DEFAULT_GROUP", "test2", "123123")
+	if err != nil {
+		t.Error(err)
+	}
+}
