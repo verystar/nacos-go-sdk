@@ -1,16 +1,27 @@
 package nacos
 
 import (
+	"crypto/hmac"
 	"crypto/md5"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
+
+type api struct {
+	loginApi  string
+	getApi    string
+	putApi    string
+	listenApi string
+}
 
 const (
 	contentType      = "application/x-www-form-urlencoded;charset=utf-8"
@@ -19,14 +30,18 @@ const (
 )
 
 type NacosConfig struct {
-	HttpClient  *http.Client
-	ServerAddr  string
-	accessToken string
-	tokenTTL    int
-	Username    string
-	Password    string
-	Logger      logger
-	PollTime    time.Duration
+	HttpClient      *http.Client
+	Endpoint        string
+	ServerAddr      string
+	accessToken     string
+	tokenTTL        int
+	Username        string
+	Password        string
+	AccessKeyId     string
+	AccessKeySecret string
+	Logger          logger
+	PollTime        time.Duration
+	api             *api
 }
 
 type LoginResponse struct {
@@ -46,9 +61,39 @@ func NewNacosConfig(options ...func(c *NacosConfig)) *NacosConfig {
 		option(nc)
 	}
 
+	if nc.Username == "" && nc.AccessKeyId == "" {
+		panic("username or access key not empty")
+	}
+
 	if nc.Username != "" && nc.Password != "" {
 		if err := nc.login(); err != nil {
 			panic(err)
+		}
+		nc.api = &api{
+			loginApi:  "/nacos/v1/auth/login",
+			getApi:    "/nacos/v1/cs/configs",
+			putApi:    "/nacos/v1/cs/configs",
+			listenApi: "/nacos/v1/cs/configs/listener",
+		}
+	}
+
+	if nc.AccessKeyId != "" && nc.AccessKeySecret != "" {
+		if nc.Endpoint == "" {
+			nc.Endpoint = "http://acm.aliyun.com:8080"
+		}
+
+		// 为了兼容，不需要
+		nc.tokenTTL = 3600
+
+		if err := nc.getServer(); err != nil {
+			panic(err)
+		}
+
+		nc.api = &api{
+			loginApi:  "",
+			getApi:    "/diamond-server/config.co",
+			putApi:    "/diamond-server/basestone.do?method=syncUpdateAll",
+			listenApi: "/diamond-server/config.co",
 		}
 	}
 
@@ -62,7 +107,7 @@ func (n *NacosConfig) login() error {
 	v.Add("username", n.Username)
 	v.Add("password", n.Password)
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/nacos/v1/auth/login", n.ServerAddr), strings.NewReader(v.Encode()))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", n.ServerAddr, n.api.loginApi), strings.NewReader(v.Encode()))
 	if err != nil {
 		return err
 	}
@@ -95,6 +140,33 @@ func (n *NacosConfig) login() error {
 	return nil
 }
 
+func (n *NacosConfig) getServer() error {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/diamond-server/diamond", n.Endpoint), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", contentType)
+
+	resp, err := n.HttpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	bb, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("acm get server fail:%s", string(bb))
+	}
+
+	n.ServerAddr = fmt.Sprintf("http://%s:8080", strings.TrimSpace(string(bb)))
+	return nil
+}
+
 func (n *NacosConfig) Put(namespace, group, dataId string, content string) error {
 	n.Logger.Debug(fmt.Sprintf("nacos get config:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
 
@@ -107,11 +179,18 @@ func (n *NacosConfig) Put(namespace, group, dataId string, content string) error
 		v.Add("accessToken", n.accessToken)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/nacos/v1/cs/configs?", n.ServerAddr)+v.Encode(), nil)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", n.ServerAddr, n.api.putApi), strings.NewReader(v.Encode()))
 	if err != nil {
 		return err
 	}
+	timeStamp := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
 	req.Header.Add("Content-Type", contentType)
+	req.Header.Add("timeStamp", timeStamp)
+
+	if n.AccessKeyId != "" {
+		req.Header.Add("Spas-AccessKey", n.AccessKeyId)
+		req.Header.Add("Spas-Signature", signSha1(namespace+"+"+timeStamp, n.AccessKeySecret))
+	}
 
 	resp, err := n.HttpClient.Do(req)
 	if err != nil {
@@ -147,11 +226,19 @@ func (n *NacosConfig) Get(namespace, group, dataId string) (string, error) {
 		v.Add("accessToken", n.accessToken)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/nacos/v1/cs/configs?", n.ServerAddr)+v.Encode(), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s?", n.ServerAddr, n.api.getApi)+v.Encode(), nil)
 	if err != nil {
 		return "", err
 	}
+
+	timeStamp := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
 	req.Header.Add("Content-Type", contentType)
+	req.Header.Add("timeStamp", timeStamp)
+
+	if n.AccessKeyId != "" {
+		req.Header.Add("Spas-AccessKey", n.AccessKeyId)
+		req.Header.Add("Spas-Signature", signSha1(namespace+"+"+group+"+"+timeStamp, n.AccessKeySecret))
+	}
 
 	resp, err := n.HttpClient.Do(req)
 	if err != nil {
@@ -187,8 +274,10 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 			select {
 			// token到期刷新
 			case <-t1.C:
-				if err := n.login(); err != nil {
-					n.Logger.Error(err)
+				if n.Username != "" {
+					if err := n.login(); err != nil {
+						n.Logger.Error(err)
+					}
 				}
 			// 每10秒监听配置
 			case <-t2.C:
@@ -219,21 +308,32 @@ func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error)
 	content := dataId + splitConfigInner + group + splitConfigInner + md5 + splitConfigInner + namespace + splitConfig
 
 	v := url.Values{}
-	v.Add("Listening-Configs", content)
+	if n.Username != "" {
+		v.Add("Listening-Configs", content)
+	} else {
+		v.Add("Probe-Modify-Request", content)
+	}
 	v.Add("tenant", namespace)
 	if n.accessToken != "" {
 		v.Add("accessToken", n.accessToken)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/nacos/v1/cs/configs/listener", n.ServerAddr), strings.NewReader(v.Encode()))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", n.ServerAddr, n.api.listenApi), strings.NewReader(v.Encode()))
 	if err != nil {
 		return false, err
 	}
 
+	timeStamp := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
 	req.Header.Add("Long-Pulling-Timeout", "3000")
 	req.Header.Add("User-Agent", "Nacos-go-client/v1.0.1")
 	req.Header.Add("exConfigInfo", "true")
 	req.Header.Add("Content-Type", contentType)
+	req.Header.Add("timeStamp", timeStamp)
+
+	if n.AccessKeyId != "" {
+		req.Header.Add("Spas-AccessKey", n.AccessKeyId)
+		req.Header.Add("Spas-Signature", signSha1(namespace+"+"+group+"+"+timeStamp, n.AccessKeySecret))
+	}
 
 	resp, err := n.HttpClient.Do(req)
 	if err != nil {
@@ -265,4 +365,12 @@ func md5string(text string) string {
 	algorithm := md5.New()
 	algorithm.Write([]byte(text))
 	return hex.EncodeToString(algorithm.Sum(nil))
+}
+
+func signSha1(encryptText, encryptKey string) string {
+	// hmac ,use sha1
+	key := []byte(encryptKey)
+	mac := hmac.New(sha1.New, key)
+	mac.Write([]byte(encryptText))
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }

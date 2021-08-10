@@ -1,6 +1,7 @@
 package nacos
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -27,6 +28,47 @@ func TestNacosConfig_Put(t *testing.T) {
 	})
 
 	err := conf.Put("pay-dev", "DEFAULT_GROUP", "test2", "123123")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestAcm_ListenAsync(t *testing.T) {
+	conf := NewNacosConfig(func(c *NacosConfig) {
+		c.AccessKeyId = os.Getenv("VERY_ALIYUN_ACCESS_KEY")
+		c.AccessKeySecret = os.Getenv("VERY_ALIYUN_ACCESS_SECRET")
+	})
+
+	conf.ListenAsync("xxxx", "verypay", "test", func(cnf string) {
+		t.Log(cnf)
+	})
+
+	<-time.After(60 * time.Second)
+}
+
+func TestAcm_Get(t *testing.T) {
+	conf := NewNacosConfig(func(c *NacosConfig) {
+		c.Endpoint = "http://acm.aliyun.com:8080"
+		c.AccessKeyId = os.Getenv("VERY_ALIYUN_ACCESS_KEY")
+		c.AccessKeySecret = os.Getenv("VERY_ALIYUN_ACCESS_SECRET")
+	})
+
+	ret, err := conf.Get("xxx", "xxx", "test")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(ret)
+}
+
+func TestAcm_Put(t *testing.T) {
+	conf := NewNacosConfig(func(c *NacosConfig) {
+		c.Endpoint = "http://acm.aliyun.com:8080"
+		c.AccessKeyId = os.Getenv("VERY_ALIYUN_ACCESS_KEY")
+		c.AccessKeySecret = os.Getenv("VERY_ALIYUN_ACCESS_SECRET")
+	})
+
+	err := conf.Put("xxxx", "xxx", "test", "123123")
 	if err != nil {
 		t.Error(err)
 	}
