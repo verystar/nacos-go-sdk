@@ -159,11 +159,13 @@ func (n *NacosConfig) getServer() error {
 		return err
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 200 || len(bb) == 0 {
 		return fmt.Errorf("acm get server fail:%s", string(bb))
 	}
 
-	n.ServerAddr = fmt.Sprintf("http://%s:8080", strings.TrimSpace(string(bb)))
+	addrs := strings.Split(string(bb), "\n")
+
+	n.ServerAddr = fmt.Sprintf("http://%s:8080", strings.TrimSpace(addrs[0]))
 	return nil
 }
 
