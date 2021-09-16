@@ -289,7 +289,6 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 					continue
 				}
 				if update {
-					n.Logger.Debug(fmt.Sprintf("nacos listen refresh:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
 					ret, err := n.Get(namespace, group, dataId)
 					if err != nil {
 						n.Logger.Error(err)
@@ -297,6 +296,7 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 					}
 
 					contentMd5 = md5string(ret)
+					n.Logger.Debug(fmt.Sprintf("nacos listen refresh:[namespace:%s,group:%s,dataId:%s,md5:%s]", namespace, group, dataId, contentMd5))
 					fn(ret)
 				}
 			}
@@ -305,7 +305,7 @@ func (n *NacosConfig) ListenAsync(namespace, group, dataId string, fn func(cnf s
 }
 
 func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error) {
-	n.Logger.Debug(fmt.Sprintf("nacos listen start:[namespace:%s,group:%s,dataId:%s]", namespace, group, dataId))
+	n.Logger.Debug(fmt.Sprintf("nacos listen start:[namespace:%s,group:%s,dataId:%s,md5:%s]", namespace, group, dataId, md5))
 
 	content := dataId + splitConfigInner + group + splitConfigInner + md5 + splitConfigInner + namespace + splitConfig
 
