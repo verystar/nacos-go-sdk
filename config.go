@@ -66,20 +66,26 @@ func NewNacosConfig(options ...func(c *NacosConfig)) *NacosConfig {
 	}
 
 	if nc.Username != "" && nc.Password != "" {
-		if err := nc.login(); err != nil {
-			panic(err)
-		}
 		nc.api = &api{
 			loginApi:  "/nacos/v1/auth/login",
 			getApi:    "/nacos/v1/cs/configs",
 			putApi:    "/nacos/v1/cs/configs",
 			listenApi: "/nacos/v1/cs/configs/listener",
 		}
+		if err := nc.login(); err != nil {
+			panic(err)
+		}
 	}
 
 	if nc.AccessKeyId != "" && nc.AccessKeySecret != "" {
 		if nc.Endpoint == "" {
 			nc.Endpoint = "http://acm.aliyun.com:8080"
+		}
+		nc.api = &api{
+			loginApi:  "",
+			getApi:    "/diamond-server/config.co",
+			putApi:    "/diamond-server/basestone.do?method=syncUpdateAll",
+			listenApi: "/diamond-server/config.co",
 		}
 
 		// 为了兼容，不需要
@@ -89,12 +95,6 @@ func NewNacosConfig(options ...func(c *NacosConfig)) *NacosConfig {
 			panic(err)
 		}
 
-		nc.api = &api{
-			loginApi:  "",
-			getApi:    "/diamond-server/config.co",
-			putApi:    "/diamond-server/basestone.do?method=syncUpdateAll",
-			listenApi: "/diamond-server/config.co",
-		}
 	}
 
 	return nc
