@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -119,7 +119,7 @@ func (n *NacosConfig) login() error {
 	}
 	defer resp.Body.Close()
 
-	bb, err := ioutil.ReadAll(resp.Body)
+	bb, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return err
@@ -153,7 +153,7 @@ func (n *NacosConfig) getServer() error {
 	}
 	defer resp.Body.Close()
 
-	bb, err := ioutil.ReadAll(resp.Body)
+	bb, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return err
@@ -200,7 +200,7 @@ func (n *NacosConfig) Put(namespace, group, dataId string, content string) error
 	}
 	defer resp.Body.Close()
 
-	bb, err := ioutil.ReadAll(resp.Body)
+	bb, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return err
@@ -248,7 +248,7 @@ func (n *NacosConfig) Get(namespace, group, dataId string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	bb, err := ioutil.ReadAll(resp.Body)
+	bb, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return "", err
@@ -343,7 +343,7 @@ func (n *NacosConfig) Listen(namespace, group, dataId, md5 string) (bool, error)
 	}
 	defer resp.Body.Close()
 
-	bb, err := ioutil.ReadAll(resp.Body)
+	bb, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return false, err
