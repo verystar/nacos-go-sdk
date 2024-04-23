@@ -232,6 +232,9 @@ func (n *Client) Put(namespace, group, dataId string, content string) error {
 
 	ret := &nacosResponse{}
 	err = json.Unmarshal(bb, ret)
+	if err != nil {
+		return err
+	}
 
 	if ret.Code != 0 {
 		return fmt.Errorf("nacos put fail:%s", string(bb))
@@ -291,6 +294,10 @@ func (n *Client) Get(namespace, group, dataId string) (string, error) {
 
 	ret := &nacosResponse{}
 	err = json.Unmarshal(bb, ret)
+
+	if err != nil {
+		return "", err
+	}
 
 	if ret.Code != 0 {
 		return "", fmt.Errorf("nacos get fail:%s", string(bb))
