@@ -28,6 +28,14 @@ func TestNacosConfig_ListenAsync(t *testing.T) {
 	<-time.After(60 * time.Second)
 }
 
+func TestNacosConfig_Put(t *testing.T) {
+	conf := newTestNacosClient()
+	err := conf.Put("pay-dev", "DEFAULT_GROUP", "test", "1231234")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestNacosConfig_Get(t *testing.T) {
 	conf := newTestNacosClient()
 	content, err := conf.Get("pay-dev", "DEFAULT_GROUP", "test")
@@ -58,5 +66,13 @@ func TestMSE_Get(t *testing.T) {
 	}
 	if content != "123123" {
 		t.Error("content not match")
+	}
+}
+
+func TestMSE_Put(t *testing.T) {
+	conf := newTestMSEClient()
+	err := conf.Put("pay-dev", "DEFAULT_GROUP", "test", "1231234")
+	if err != nil {
+		t.Error(err)
 	}
 }

@@ -84,10 +84,16 @@ func WithLogger(l *slog.Logger) Option {
 	}
 }
 
-type nacosResponse struct {
+type getResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    string `json:"data"`
+}
+
+type putResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    bool   `json:"data"`
 }
 
 type loginResponse struct {
@@ -197,8 +203,6 @@ func (n *Client) Put(namespace, group, dataId string, content string) error {
 		v.Add("accessToken", n.accessToken)
 	}
 
-	fmt.Println(v.Encode())
-
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", n.endpoint, putApi), strings.NewReader(v.Encode()))
 	if err != nil {
 		return err
@@ -230,7 +234,7 @@ func (n *Client) Put(namespace, group, dataId string, content string) error {
 		return fmt.Errorf("nacos put fail:%s", string(bb))
 	}
 
-	ret := &nacosResponse{}
+	ret := &putResponse{}
 	err = json.Unmarshal(bb, ret)
 	if err != nil {
 		return fmt.Errorf("nacos response unmarshal fail:%w", err)
@@ -292,7 +296,7 @@ func (n *Client) Get(namespace, group, dataId string) (string, error) {
 		return string(bb), nil
 	}
 
-	ret := &nacosResponse{}
+	ret := &getResponse{}
 	err = json.Unmarshal(bb, ret)
 
 	if err != nil {
