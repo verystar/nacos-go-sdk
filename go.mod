@@ -1,3 +1,3 @@
-module github.com/verystar/nacos-go-sdk
+module github.com/verystar/nacos-go-sdk/v2
 
-go 1.17
+go 1.21
