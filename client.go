@@ -299,8 +299,8 @@ func (n *Client) Get(namespace, group, dataId string) (string, error) {
 	ret := &getResponse{}
 	err = json.Unmarshal(bb, ret)
 
-	if err != nil {
-		return "", fmt.Errorf("nacos unmarshal fail:%w", err)
+	if err != nil || ret.Data == "" {
+		return string(bb), nil
 	}
 
 	if ret.Code != 0 {
