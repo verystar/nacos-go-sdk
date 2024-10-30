@@ -3,7 +3,7 @@
 ## Usage
 
 ```shell
-go get github.com/verystar/nacos-sdk-go/v2
+go get github.com/verystar/nacos-go-sdk/v2
 ```
 
 ## Nacos Client
