@@ -292,10 +292,6 @@ func (n *Client) Get(namespace, group, dataId string) (string, error) {
 		return "", fmt.Errorf("nacos get fail:%s", string(bb))
 	}
 
-	if n.authType == AccessKeyAuth {
-		return string(bb), nil
-	}
-
 	ret := &getResponse{}
 	err = json.Unmarshal(bb, ret)
 
