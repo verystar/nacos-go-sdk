@@ -22,10 +22,9 @@ func TestNacosConfig_ListenAsync(t *testing.T) {
 
 	conf.ListenAsync("pay-dev", "DEFAULT_GROUP", "test", func(cnf string) {
 		t.Log(cnf)
-		t.SkipNow()
 	})
 
-	<-time.After(60 * time.Second)
+	<-time.After(160 * time.Second)
 }
 
 func TestNacosConfig_Put(t *testing.T) {
