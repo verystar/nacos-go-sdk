@@ -333,8 +333,8 @@ func (n *Client) ListenAsync(namespace, group, dataId string, fn func(cnf string
 				}
 				newMd5 := md5string(update)
 				if newMd5 != contentMd5 {
-					contentMd5 = newMd5
 					n.logger.Info(fmt.Sprintf("nacos listen refresh:[namespace:%s,group:%s,dataId:%s,md5:%s,newMd5:%s]", namespace, group, dataId, contentMd5, newMd5))
+					contentMd5 = newMd5
 					fn(update)
 				}
 			}
